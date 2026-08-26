@@ -14,7 +14,7 @@ WORKDIR /app
 
 # Copy ONLY the built fat jar from the build stage
 # Adjust the path below to match where your build tool outputs the fat jar
-COPY --from=build /app/build/libs/*-all.jar ./bot.jar
+COPY --from=build /app/build/libs/*.jar ./bot.jar
 
 # Run the bot
 ENTRYPOINT ["java", "-jar", "bot.jar"]
