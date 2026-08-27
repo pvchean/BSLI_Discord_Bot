@@ -26,17 +26,27 @@ public class AutoModeration extends ListenerAdapter {
 
     // High Severity: Phishing, typo-squatted domains, steam scams (24-hour timeout)
     public static final List<Pattern> HIGH_SEVERITY_PATTERNS = List.of(
-            Pattern.compile("d[li]scord[a-z0-9-]*\\.(?:com|gift|club|online|app)", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("(?:1nitro|appnitro|steam-nitro)", Pattern.CASE_INSENSITIVE),
+            // FIX 1: Added negative lookahead to explicitly ignore official Discord domains
+            Pattern.compile("\\b(?!(?:www\\.)?(?:discord|discordapp)\\.(?:com|gg|gift|net|media)\\b)d[li]scord[a-z0-9-]*\\.(?:com|gift|club|online|app|xyz|ru|info|net)\\b", Pattern.CASE_INSENSITIVE),
+
+            // FIX 2: Added domain extensions and word boundaries so casual chat like "is steam-nitro a scam?" doesn't trigger a 24-hour ban
+            Pattern.compile("\\b(?:1nitro|appnitro|steam-nitro)\\.(?:com|xyz|club|online|ru|net|info)\\b", Pattern.CASE_INSENSITIVE),
+
             Pattern.compile("accidentally reported.*steam", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("steamcommunity\\.com/gift", Pattern.CASE_INSENSITIVE),
+
+            // FIX 3: Your original regex literally targeted the OFFICIAL steamcommunity.com.
+            // This replacement targets typo-squats (e.g., steamcommmunity.com, steamcommunity-gift.com) while ignoring the real one.
+            Pattern.compile("\\b(?!(?:www\\.)?steamcommunity\\.com\\b)steam[a-z]*community[a-z0-9-]*\\.[a-z]+\\b", Pattern.CASE_INSENSITIVE),
+
             Pattern.compile("(?:free crypto|giveaway).*?(?:seed phrase|private key)", Pattern.CASE_INSENSITIVE)
     );
 
     // Low Severity: Genuine official discord.gift links (5-minute timeout)
     public static final List<Pattern> LOW_SEVERITY_PATTERNS = List.of(
             Pattern.compile("https?://(?:www\\.)?discord\\.gift/[a-zA-Z0-9]+", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("discord\\.gift/[a-zA-Z0-9]+", Pattern.CASE_INSENSITIVE)
+
+            // FIX 4: Added a word boundary (\b) so a malicious link like "fakediscord.gift/abc" doesn't accidentally trigger the low-severity filter
+            Pattern.compile("\\bdiscord\\.gift/[a-zA-Z0-9]+", Pattern.CASE_INSENSITIVE)
     );
 
     // Single entry point to sort through the message
