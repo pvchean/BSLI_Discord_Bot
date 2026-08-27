@@ -16,9 +16,9 @@ public class Config {
     public static long ONBOARDING_CHANNEL_ID;
 
     public static long ONBOARDING_ROLE_ID;
-    public static long NASA_ROLE_ID;
-    public static long IREC_ROLE_ID;
-    public static long LRS_ROLE_ID;
+    //public static long NASA_ROLE_ID;
+    //public static long IREC_ROLE_ID;
+    //public static long LRS_ROLE_ID;
 
 
 
@@ -38,9 +38,9 @@ public class Config {
         ONBOARDING_CHANNEL_ID = parseLongEnv("ONBOARDING_CHANNEL_ID");
 
         ONBOARDING_ROLE_ID = parseLongEnv("ONBOARDING_ROLE_ID");
-        NASA_ROLE_ID = parseLongEnv("NASA_ROLE_ID");
-        IREC_ROLE_ID = parseLongEnv("IREC_ROLE_ID");
-        LRS_ROLE_ID = parseLongEnv("LRS_ROLE_ID");
+        //NASA_ROLE_ID = parseLongEnv("NASA_ROLE_ID");
+        //IREC_ROLE_ID = parseLongEnv("IREC_ROLE_ID");
+        //LRS_ROLE_ID = parseLongEnv("LRS_ROLE_ID");
     }
 
     /**
