@@ -3,7 +3,6 @@ package space.bsli;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -62,9 +61,11 @@ public class OnboardingListener extends ListenerAdapter {
                 }
             }
 
+            event.deferReply(true).queue();
             channel.sendMessageEmbeds(embed.build())
                     .addActionRow(Button.primary("onboard:rule1", "Start Onboarding Process"))
-                    .queue();
+                    .queue(s -> event.getHook().editOriginal("Message successfully sent in " + channel.getAsMention()).queue(),
+                            f -> event.getHook().editOriginal("Message failed to be sent in " + channel.getAsMention()).queue());
         }
     }
 
