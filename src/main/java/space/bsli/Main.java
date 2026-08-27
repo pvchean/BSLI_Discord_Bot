@@ -7,9 +7,7 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
-import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
@@ -87,18 +85,6 @@ public class Main extends ListenerAdapter {
 
         // Pass the event to AutoModeration to sort through the patterns and spam
         AutoModeration.processMessage(event, content);
-    }
-
-    @Override
-    public void onGuildMemberJoin(GuildMemberJoinEvent event) {
-        Role onboardingRole = event.getGuild().getRoleById(Config.ONBOARDING_ROLE_ID);
-        if (onboardingRole != null) {
-            event.getGuild().addRoleToMember(event.getMember(), onboardingRole)
-                    .reason("Auto-assigned onboarding role upon joining.")
-                    .queue(success -> System.out.println("Assigned onboarding role to " + event.getUser().getName()),
-                            error -> System.err.println("Failed to assign role: " + error.getMessage())
-                    );
-        }
     }
 
     @Override

@@ -2,11 +2,14 @@ package space.bsli;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
@@ -16,14 +19,34 @@ import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 
 import java.awt.*;
-import java.util.Objects;
+import java.util.*;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 public class OnboardingListener extends ListenerAdapter {
 
     private final Color ACCENT_COLOR = Color.decode("#BB0000");
+    private final ArrayList<Role> preJoinRoles = new ArrayList<>();
+    public static final Map<Long, List<Role>> savedPreJoinRoles = new ConcurrentHashMap<>();
 
+
+    @Override
+    public void onReady(ReadyEvent event) {
+        Guild guild = event.getJDA().getGuildById(Config.GUILD_ID);
+        if (guild == null) {
+            System.err.println("Unable to locate the BSLI Guild!");
+            return;
+        }
+        // Add roles that will temporarily be removed during onboarding process
+        var role = guild.getRoleById(Config.NASA_ROLE_ID);
+        if (role != null) preJoinRoles.add(role);
+        role = guild.getRoleById(Config.IREC_ROLE_ID);
+        if (role != null) preJoinRoles.add(role);
+        role = guild.getRoleById(Config.LRS_ROLE_ID);
+        if (role != null) preJoinRoles.add(role);
+    }
     // 1. Initial trigger using the registered /onboard slash command
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
@@ -207,6 +230,20 @@ public class OnboardingListener extends ListenerAdapter {
                         .queue();
 
                 event.getHook().deleteOriginal().queueAfter(15, TimeUnit.SECONDS);
+
+                // Remove the onboarding role
+                if (event.getGuild() != null && event.getMember() != null) {
+                    Role onboardingRole = event.getGuild().getRoleById(Config.ONBOARDING_ROLE_ID);
+                    if (onboardingRole != null) {
+                        var rolesToAdd = savedPreJoinRoles.remove(event.getMember().getIdLong());
+                        if (rolesToAdd == null) rolesToAdd = Collections.emptyList();
+                        var rolesToRemove = Collections.singletonList(onboardingRole);
+
+                        event.getGuild().modifyMemberRoles(event.getMember(), rolesToAdd, rolesToRemove).queueAfter(3, TimeUnit.SECONDS,
+                                success -> System.out.println("Removed onboarding role from " + event.getUser().getName()),
+                                error -> System.err.println("Failed to remove role: Onboarding"));
+                    }
+                }
             }
         }
 
@@ -239,17 +276,6 @@ public class OnboardingListener extends ListenerAdapter {
                 return;
             }
 
-            // Remove the onboarding role
-            if (event.getGuild() != null && event.getMember() != null) {
-                Role onboardingRole = event.getGuild().getRoleById(Config.ONBOARDING_ROLE_ID);
-                if (onboardingRole != null) {
-                    event.getGuild().removeRoleFromMember(event.getMember(), onboardingRole).queue(
-                            success -> System.out.println("Removed onboarding role from " + event.getUser().getName()),
-                            error -> System.err.println("Failed to remove role: " + error.getMessage())
-                    );
-                }
-            }
-
             // 1) Change the user's server nickname
             if (event.getMember() != null && Objects.requireNonNull(event.getGuild()).getSelfMember().canInteract(event.getMember())) {
                 String newNickname = firstName + " (" + lastNameNum + ")";
@@ -271,6 +297,29 @@ public class OnboardingListener extends ListenerAdapter {
             event.editMessageEmbeds(pfpEmbed.build())
                     .setComponents(ActionRow.of(Button.success("onboard:pfp_done", "I've added a picture!")))
                     .queue();
+        }
+    }
+
+    @Override
+    public void onGuildMemberJoin(GuildMemberJoinEvent event) {
+        Role onboardingRole = event.getGuild().getRoleById(Config.ONBOARDING_ROLE_ID);
+        if (onboardingRole != null) {
+            var member = event.getMember();
+
+            List<Role> rolesToTemporarilyRemove = member.getRoles().stream()
+                    .filter(preJoinRoles::contains) // Checks if the ArrayList contains the member's role
+                    .toList();
+
+            if (!rolesToTemporarilyRemove.isEmpty()) {
+                savedPreJoinRoles.put(member.getIdLong(), rolesToTemporarilyRemove);
+            }
+
+            event.getGuild().modifyMemberRoles(member, Collections.singletonList(onboardingRole), rolesToTemporarilyRemove)
+                    .reason("Auto-assigned onboarding role and temporarily removed pre-join roles.")
+                    .queue(
+                            success -> System.out.println("Processed onboarding roles for " + event.getUser().getName()),
+                            error -> System.err.println("Failed to modify roles: " + error.getMessage())
+                    );
         }
     }
 }

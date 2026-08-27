@@ -10,10 +10,18 @@ import java.util.Map;
 public class Config {
     public static String BOT_TOKEN;
     public static long GUILD_ID;
+
     public static long MOD_CHANNEL_ID;
     public static long RULES_CHANNEL_ID;
-    public static long ONBOARDING_ROLE_ID;
     public static long ONBOARDING_CHANNEL_ID;
+
+    public static long ONBOARDING_ROLE_ID;
+    public static long NASA_ROLE_ID;
+    public static long IREC_ROLE_ID;
+    public static long LRS_ROLE_ID;
+
+
+
 
     private static final Map<String, String> dotEnvMap = new HashMap<>();
 
@@ -24,10 +32,15 @@ public class Config {
         // Check environment variables (supports DISCORD_API_TOKEN or BOT_TOKEN)
         BOT_TOKEN = requireEnv("BOT_TOKEN", "DISCORD_API_TOKEN");
         GUILD_ID = parseLongEnv("GUILD_ID");
+
         MOD_CHANNEL_ID = parseLongEnv("MOD_CHANNEL_ID");
         RULES_CHANNEL_ID = parseLongEnv("RULES_CHANNEL_ID");
-        ONBOARDING_ROLE_ID = parseLongEnv("ONBOARDING_ROLE_ID");
         ONBOARDING_CHANNEL_ID = parseLongEnv("ONBOARDING_CHANNEL_ID");
+
+        ONBOARDING_ROLE_ID = parseLongEnv("ONBOARDING_ROLE_ID");
+        NASA_ROLE_ID = parseLongEnv("NASA_ROLE_ID");
+        IREC_ROLE_ID = parseLongEnv("IREC_ROLE_ID");
+        LRS_ROLE_ID = parseLongEnv("LRS_ROLE_ID");
     }
 
     /**
