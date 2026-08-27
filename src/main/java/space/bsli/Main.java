@@ -4,12 +4,16 @@ import net.dv8tion.jda.api.*;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.InteractionContextType;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
 public class Main extends ListenerAdapter {
@@ -42,7 +46,11 @@ public class Main extends ListenerAdapter {
         Guild guild = event.getJDA().getGuildById(Config.GUILD_ID);
         if (guild != null) {
             guild.updateCommands().addCommands(
-                    Commands.slash("onboard", "Start the interactive member onboarding process"),
+                    Commands.slash("setup-onboarding", "Start the interactive member onboarding process")
+                            .setContexts(InteractionContextType.GUILD)
+                            .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
+                            .addOptions(new OptionData(OptionType.CHANNEL, "target-channel", "Channel to send onboarding to", false)
+                                    .setChannelTypes(ChannelType.TEXT)),
                     Commands.slash("website", "Link to the BSLI Website")
             ).queue(
                     success -> System.out.println("Successfully registered slash commands to Guild: " + guild.getName()),

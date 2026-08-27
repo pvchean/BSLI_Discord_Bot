@@ -13,6 +13,7 @@ public class Config {
     public static long MOD_CHANNEL_ID;
     public static long RULES_CHANNEL_ID;
     public static long ONBOARDING_ROLE_ID;
+    public static long ONBOARDING_CHANNEL_ID;
 
     private static final Map<String, String> dotEnvMap = new HashMap<>();
 
@@ -26,6 +27,7 @@ public class Config {
         MOD_CHANNEL_ID = parseLongEnv("MOD_CHANNEL_ID");
         RULES_CHANNEL_ID = parseLongEnv("RULES_CHANNEL_ID");
         ONBOARDING_ROLE_ID = parseLongEnv("ONBOARDING_ROLE_ID");
+        ONBOARDING_CHANNEL_ID = parseLongEnv("ONBOARDING_CHANNEL_ID");
     }
 
     /**

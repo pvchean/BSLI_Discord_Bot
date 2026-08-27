@@ -1,11 +1,15 @@
 package space.bsli;
 
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
@@ -24,13 +28,41 @@ public class OnboardingListener extends ListenerAdapter {
     // 1. Initial trigger using the registered /onboard slash command
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-        if (event.getName().equals("onboard")) {
+        if (event.getName().equals("setup-onboarding")) {
+            if (event.getMember() == null || !event.getMember().hasPermission(Permission.ADMINISTRATOR)) {
+                event.reply("You must have Administrator permissions to use this command.")
+                        .setEphemeral(true)
+                        .queue();
+                return;
+            }
+
             EmbedBuilder embed = new EmbedBuilder()
                     .setTitle("Welcome to the Server!")
-                    .setDescription("Click the button below to start the onboarding process.")
+                    .setDescription("""
+                            Before you join this server, we need you to complete a simple onboarding process.
+                            The onboarding process it done to make sure each member has agreed to the server rules, and their name complies with the Name Lastname.# standard.
+                            
+                            Click the button below to start the onboarding process.
+                            """)
+                    .setFooter("Note: ONLY your server-specific nickname will be changed.")
                     .setColor(ACCENT_COLOR);
 
-            event.replyEmbeds(embed.build())
+            MessageChannel channel;
+
+            OptionMapping channelOption = event.getOption("target-channel");
+            if (channelOption != null) {
+                channel = channelOption.getAsChannel().asGuildMessageChannel();
+            } else {
+                channel = event.getJDA().getTextChannelById(Config.ONBOARDING_CHANNEL_ID);
+
+                if (channel == null) {
+                    System.err.println("Unable to find onboarding channel via long id.");
+                    event.reply("Unable to find onboarding channel via long id.").queue();
+                    return;
+                }
+            }
+
+            channel.sendMessageEmbeds(embed.build())
                     .addActionRow(Button.primary("onboard:rule1", "Start Onboarding Process"))
                     .queue();
         }
@@ -231,7 +263,7 @@ public class OnboardingListener extends ListenerAdapter {
             // 2) Prompt for a profile picture
             EmbedBuilder pfpEmbed = new EmbedBuilder()
                     .setTitle("Looking good, " + firstName + "!")
-                    .setDescription("Your name is all set! Next up: let's get a profile picture sorted out.\n\nIt absolutely doesn't have to be a selfie—just toss up something professional-ish that you like. \n\nClick the button below once you've updated it!")
+                    .setDescription("Your name is all set! Next up: let's get a profile picture sorted out.\n\nIt absolutely doesn't have to be a selfie, just something professional-ish that you like or a photo of the ground. \n\nClick the button below once you've updated it!")
                     .setColor(ACCENT_COLOR);
 
             // Edit the existing ephemeral message to show the PFP prompt and a new button
