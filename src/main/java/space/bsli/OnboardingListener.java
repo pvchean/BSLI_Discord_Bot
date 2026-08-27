@@ -31,7 +31,7 @@ public class OnboardingListener extends ListenerAdapter {
                     .setColor(ACCENT_COLOR);
 
             event.replyEmbeds(embed.build())
-                    .addActionRow(Button.primary("onboard:start", "Start Onboarding Process"))
+                    .addActionRow(Button.primary("onboard:rule1", "Start Onboarding Process"))
                     .queue();
         }
     }
@@ -42,19 +42,87 @@ public class OnboardingListener extends ListenerAdapter {
         String componentId = event.getComponentId();
 
         switch (componentId) {
-            case "onboard:start" -> {
+            case "onboard:rule1" -> {
                 EmbedBuilder rulesEmbed = new EmbedBuilder()
                         .setTitle("Server Rules")
-                        .setDescription("Please agree to the server rules to continue.")
+                        .setDescription("""
+                                **Please agree to the server rules to continue.**
+                                
+                                🚀 OSU BSLI  — Server Rules
+                                By joining this server, you agree to the following rules. Violations may result in a mute, kick, or permanent ban. Serious violations may be escalated to the Ohio State University. Welcome aboard @everyone !
+                                
+                                📋 Conduct & Respect
+                                1. Be respectful. Treat all members with kindness and professionalism. No harassment, personal attacks, slurs, hateful language, or dogpiling — toward other members, faculty, or club advisors. This applies in the server and in DMs.
+                                2. No trolling or raiding. Members who join to cause disruption will be removed without warning.
+                                3. Keep DMs respectful. Do not use DMs to harass members or continue arguments after someone asks you to stop. If someone tells you to leave them alone, that is your only warning.
+                                4. Use your real name and dot number. Set your server nickname to your first and last name.number . This is a university organization — do not say anything here you would not say in person.\s
+                                   Ex. Brutus Buckeye.1 or Wilson Dhalwani.1
+                                
+                                🎓 Academic Integrity
+                                5. No academic misconduct. Sharing homework answers, exam content, or any form of cheating is strictly prohibited and will be reported to Ohio State's Committee on Academic Misconduct (COAM). This can result in a server ban and serious academic consequences up to and including expulsion.
+                                6. Advising questions go to your advisor. This server is not a substitute for official academic advising. For time-sensitive matters (fees, enrollment, holds), contact your OSU advisor directly.
+                                """)
                         .setColor(ACCENT_COLOR);
 
                 // Send ephemeral reply so only the user sees the rest of the flow
                 event.replyEmbeds(rulesEmbed.build())
-                        .addActionRow(Button.success("onboard:agree", "Yes"))
+                        .addActionRow(Button.success("onboard:rule2", "I Agree"))
                         .setEphemeral(true)
                         .queue();
             }
-            case "onboard:agree" -> {
+            case "onboard:rule2" -> {
+                EmbedBuilder rulesEmbed = new EmbedBuilder()
+                        .setTitle("Server Rules")
+                        .setDescription("""
+                                **Please agree to the server rules to continue.**
+                                
+                                💬 Content & Channels
+                                7. Stay on topic and use the right channels. Follow the guidelines in each channel's description and pins — there is no excuse for not reading them.
+                                8. Keep controversial content in the designated channel. Political, socially sensitive, or controversial discussions belong in the designated channel. Mods may redirect conversations at their discretion. No political or controversial memes anywhere on the server.
+                                9. No spam, walls of text, or unsolicited promotions. Keep messages concise. For lengthy technical content, use threads or a paste service (e.g. Pastebin). To promote an event or outside club, DM a mod first.
+                                10. SFW only. No NSFW, adult, or explicitly offensive content anywhere on the server.
+                                
+                                🔒 Privacy & Safety
+                                11. Protect @everyone's privacy. Do not share personal information (phone numbers, addresses, class schedules, etc.) for yourself or others. This server is not private — assume anyone can read it.
+                                12. No unauthorized bots. Adding bots or integrations without admin approval will result in immediate removal and potential disciplinary action.
+                                13. Ping mods only when necessary. If a situation needs moderator attention, @ the mod role. Do not ping mods as a joke. For non-urgent issues, DM a mod directly.
+                                """)
+                        .setColor(ACCENT_COLOR);
+
+                // Send ephemeral reply so only the user sees the rest of the flow
+                event.replyEmbeds(rulesEmbed.build())
+                        .addActionRow(Button.success("onboard:rule3", "I Agree"))
+                        .setEphemeral(true)
+                        .queue();
+            }
+            case "onboard:rule3" -> {
+                EmbedBuilder rulesEmbed = new EmbedBuilder()
+                        .setTitle("Server Rules")
+                        .setDescription("""
+                                **Please agree to the server rules to continue.**
+                                
+                                ⚠️ Escalation Policy
+                                Depending on the severity of a situation, the following steps may be taken:
+                                
+                                Verbal reminder — for minor or first-time infractions
+                                Logged warning — for repeated or more serious violations
+                                Temporary mute or kick — for continued poor behavior
+                                Permanent ban — for severe violations or failure to correct behavior after warnings
+                                Report to Ohio State — violations involving harassment, threats, discrimination, or academic misconduct may be reported to the OSU Office of Student Conduct and/or COAM, and could result in academic disciplinary action
+                                
+                                If you are experiencing an issue with another member, DM a moderator — we are here to help and will handle matters confidentially where possible. We will work to ensure @everyone can feel comfortable and safe.\s
+                                
+                                *These rules are not exhaustive. Moderators handle situations on a case-by-case basis and have final discretion. By participating in this server, you agree to be held accountable to these rules.*
+                                """)
+                        .setColor(ACCENT_COLOR);
+
+                // Send ephemeral reply so only the user sees the rest of the flow
+                event.replyEmbeds(rulesEmbed.build())
+                        .addActionRow(Button.success("onboard:name", "I Agree"))
+                        .setEphemeral(true)
+                        .queue();
+            }
+            case "onboard:name" -> {
                 EmbedBuilder regexEmbed = new EmbedBuilder()
                         .setTitle("Set Your Name")
                         .setDescription("You need to change your name to match our format. \n\nWe need your **Preferred First Name** and your **Lastname.Number** (e.g., smith.123).")
@@ -100,7 +168,7 @@ public class OnboardingListener extends ListenerAdapter {
 
                 EmbedBuilder finalEmbed = new EmbedBuilder()
                         .setTitle("Onboarding Complete!")
-                        .setDescription("Awesome, you're all set! Welcome aboard. This message will self-destruct in 15 seconds.")
+                        .setDescription("Awesome, you're all set! Welcome aboard!")
                         .setColor(ACCENT_COLOR);
 
                 event.editMessageEmbeds(finalEmbed.build())
