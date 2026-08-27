@@ -33,6 +33,7 @@ public class Main extends ListenerAdapter {
                     .setActivity(Activity.watching("Launching Rockets!"))
                     .enableIntents(
                             GatewayIntent.GUILD_MESSAGES,
+                            GatewayIntent.GUILD_MEMBERS,
                             GatewayIntent.MESSAGE_CONTENT
                     )
                     // Register AutoModeration here so the Undo button listener works
