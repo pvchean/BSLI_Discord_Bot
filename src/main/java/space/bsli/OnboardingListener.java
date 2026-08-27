@@ -317,6 +317,7 @@ public class OnboardingListener extends ListenerAdapter {
 
     @Override
     public void onGuildMemberRoleAdd(GuildMemberRoleAddEvent event) {
+        System.out.println("onGuildMemberRoleAdd event triggered");
         Role onboardingRole = event.getGuild().getRoleById(Config.ONBOARDING_ROLE_ID);
         if (onboardingRole == null) return;
 
