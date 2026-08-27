@@ -302,6 +302,7 @@ public class OnboardingListener extends ListenerAdapter {
 
     @Override
     public void onGuildMemberJoin(GuildMemberJoinEvent event) {
+        System.out.println("onGuildMemberJoin event triggered");
         Role onboardingRole = event.getGuild().getRoleById(Config.ONBOARDING_ROLE_ID);
         if (onboardingRole != null) {
             var member = event.getMember();
@@ -320,6 +321,8 @@ public class OnboardingListener extends ListenerAdapter {
                             success -> System.out.println("Processed onboarding roles for " + event.getUser().getName()),
                             error -> System.err.println("Failed to modify roles: " + error.getMessage())
                     );
+        } else {
+            System.err.println("Onboarding role not found!");
         }
     }
 }

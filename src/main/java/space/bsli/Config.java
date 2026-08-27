@@ -90,6 +90,11 @@ public class Config {
             }
         }
         System.err.println("Missing required environment variable: " + keys[0]);
+        try {
+            Thread.sleep(15000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         System.exit(1);
         return null;
     }
