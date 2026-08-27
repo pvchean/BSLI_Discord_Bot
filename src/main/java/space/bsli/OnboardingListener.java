@@ -90,9 +90,8 @@ public class OnboardingListener extends ListenerAdapter {
                         .setColor(ACCENT_COLOR);
 
                 // Send ephemeral reply so only the user sees the rest of the flow
-                event.replyEmbeds(rulesEmbed.build())
-                        .addActionRow(Button.success("onboard:rule3", "I Agree"))
-                        .setEphemeral(true)
+                event.editMessageEmbeds(rulesEmbed.build())
+                        .setComponents(ActionRow.of(Button.success("onboard:rule3", "I Agree")))
                         .queue();
             }
             case "onboard:rule3" -> {
@@ -117,9 +116,8 @@ public class OnboardingListener extends ListenerAdapter {
                         .setColor(ACCENT_COLOR);
 
                 // Send ephemeral reply so only the user sees the rest of the flow
-                event.replyEmbeds(rulesEmbed.build())
-                        .addActionRow(Button.success("onboard:name", "I Agree"))
-                        .setEphemeral(true)
+                event.editMessageEmbeds(rulesEmbed.build())
+                        .setComponents(ActionRow.of(Button.success("onboard:name", "I Agree")))
                         .queue();
             }
             case "onboard:name" -> {
