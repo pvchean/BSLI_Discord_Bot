@@ -6,6 +6,7 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -302,27 +303,57 @@ public class OnboardingListener extends ListenerAdapter {
 
     @Override
     public void onGuildMemberJoin(GuildMemberJoinEvent event) {
-        System.out.println("onGuildMemberJoin event triggered");
         Role onboardingRole = event.getGuild().getRoleById(Config.ONBOARDING_ROLE_ID);
-        if (onboardingRole != null) {
-            var member = event.getMember();
 
-            List<Role> rolesToTemporarilyRemove = member.getRoles().stream()
-                    .filter(preJoinRoles::contains) // Checks if the ArrayList contains the member's role
+        if (onboardingRole != null) {
+            event.getGuild().addRoleToMember(event.getMember(), onboardingRole)
+                    .reason("Auto-assigned onboarding role upon joining.")
+                    .queue(
+                            success -> System.out.println("Assigned onboarding role to " + event.getUser().getName()),
+                            error -> System.err.println("Failed to assign onboarding role: " + error.getMessage())
+                    );
+        }
+    }
+
+    @Override
+    public void onGuildMemberRoleAdd(GuildMemberRoleAddEvent event) {
+        Role onboardingRole = event.getGuild().getRoleById(Config.ONBOARDING_ROLE_ID);
+        if (onboardingRole == null) return;
+
+        var member = event.getMember();
+
+        // Only filter roles if the user currently has the Onboarding Role
+        if (member.getRoles().contains(onboardingRole)) {
+
+            // Find which of the newly added roles match your preJoinRoles list
+            List<Role> interceptedRoles = event.getRoles().stream()
+                    .filter(preJoinRoles::contains)
                     .toList();
 
-            if (!rolesToTemporarilyRemove.isEmpty()) {
-                savedPreJoinRoles.put(member.getIdLong(), rolesToTemporarilyRemove);
-            }
+            if (!interceptedRoles.isEmpty()) {
+                // Save intercepted roles to the map (appends if user already has saved roles)
+                savedPreJoinRoles.compute(member.getIdLong(), (id, existingList) -> {
+                    if (existingList == null) {
+                        return new ArrayList<>(interceptedRoles);
+                    } else {
+                        List<Role> updated = new ArrayList<>(existingList);
+                        for (Role role : interceptedRoles) {
+                            if (!updated.contains(role)) {
+                                updated.add(role);
+                            }
+                        }
+                        return updated;
+                    }
+                });
 
-            event.getGuild().modifyMemberRoles(member, Collections.singletonList(onboardingRole), rolesToTemporarilyRemove)
-                    .reason("Auto-assigned onboarding role and temporarily removed pre-join roles.")
-                    .queue(
-                            success -> System.out.println("Processed onboarding roles for " + event.getUser().getName()),
-                            error -> System.err.println("Failed to modify roles: " + error.getMessage())
-                    );
-        } else {
-            System.err.println("Onboarding role not found!");
+                // Remove the intercepted roles so the onboarding view lock stays active
+                event.getGuild().modifyMemberRoles(member, Collections.emptyList(), interceptedRoles)
+                        .reason("Temporarily removing pre-join roles until onboarding completion.")
+                        .queue(
+                                success -> System.out.println("Intercepted and saved pre-join roles for " + event.getUser().getName()),
+                                error -> System.err.println("Failed to remove pre-join roles: " + error.getMessage())
+                        );
+            }
         }
     }
 }
