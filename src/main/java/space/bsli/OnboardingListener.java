@@ -285,13 +285,6 @@ public class OnboardingListener extends ListenerAdapter {
                             success -> System.out.println("Assigned onboarding role to " + event.getUser().getName()),
                             error -> System.err.println("Failed to assign onboarding role: " + error.getMessage())
                     );
-
-            event.getGuild().addRoleToMember(event.getMember(), onboardingRole)
-                    .reason("Auto-assigned onboarding role upon joining.")
-                    .queueAfter(5, TimeUnit.SECONDS,
-                            success -> System.out.println("Assigned onboarding role to " + event.getUser().getName()),
-                            error -> System.err.println("Failed to assign onboarding role: " + error.getMessage())
-                    );
         }
     }
 }
