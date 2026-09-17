@@ -89,41 +89,40 @@ public class OnboardingListener extends ListenerAdapter {
                 return;
             }
 
-            // Role conversion pairs: { FULL_ROLE_ID, INT_ROLE_ID }
+            // Role mapping: { FULL_ROLE_ID, INT_ROLE_ID }
             long[][] rolePairs = {
                     {Config.NASA_ROLE_ID, Config.NASA_INT_ROLE_ID},
                     {Config.IREC_ROLE_ID, Config.IREC_INT_ROLE_ID},
                     {Config.LRS_ROLE_ID, Config.LRS_INT_ROLE_ID}
             };
 
-            // Load full guild member cache before processing
             guild.loadMembers().onSuccess(members -> {
                 int membersDowngraded = 0;
 
                 for (net.dv8tion.jda.api.entities.Member member : members) {
-                    // Target only members currently in onboarding
                     if (member.getRoles().contains(onboardingRole)) {
-                        boolean memberUpdated = false;
+                        java.util.List<Role> rolesToAdd = new java.util.ArrayList<>();
+                        java.util.List<Role> rolesToRemove = new java.util.ArrayList<>();
 
                         for (long[] pair : rolePairs) {
                             Role fullRole = guild.getRoleById(pair[0]);
                             Role intRole = guild.getRoleById(pair[1]);
 
                             if (fullRole != null && intRole != null && member.getRoles().contains(fullRole)) {
-                                guild.removeRoleFromMember(member, fullRole).queue();
-                                guild.addRoleToMember(member, intRole).queue();
-                                memberUpdated = true;
+                                rolesToRemove.add(fullRole);
+                                rolesToAdd.add(intRole);
                             }
                         }
 
-                        if (memberUpdated) {
+                        if (!rolesToAdd.isEmpty() || !rolesToRemove.isEmpty()) {
+                            guild.modifyMemberRoles(member, rolesToAdd, rolesToRemove).queue();
                             membersDowngraded++;
                         }
                     }
                 }
 
                 event.getHook().editOriginal(
-                        "Role check complete. Downgraded team roles to INT versions for " + membersDowngraded + " member(s) currently in onboarding."
+                        "Role check complete. Downgraded team roles to INT versions for " + membersDowngraded + " member(s)."
                 ).queue();
             }).onError(error ->
                     event.getHook().editOriginal("Failed to load members: " + error.getMessage()).queue()
@@ -270,39 +269,42 @@ public class OnboardingListener extends ListenerAdapter {
 
                 event.getHook().deleteOriginal().queueAfter(15, TimeUnit.SECONDS);
 
-                // Remove the onboarding role
+                // Remove onboarding role and upgrade INT roles to full roles in a single API request
                 if (event.getGuild() != null && event.getMember() != null) {
-                    Role onboardingRole = event.getGuild().getRoleById(Config.ONBOARDING_ROLE_ID);
-                    if (onboardingRole != null) {
-                        event.getGuild().removeRoleFromMember(event.getMember(), onboardingRole).queueAfter(3, TimeUnit.SECONDS,
-                                success -> {
-                                    System.out.println("Removed onboarding role from " + event.getUser().getName());
+                    net.dv8tion.jda.api.entities.Guild guild = event.getGuild();
+                    net.dv8tion.jda.api.entities.Member member = event.getMember();
 
-                                    net.dv8tion.jda.api.entities.Guild guild = event.getGuild();
-                                    net.dv8tion.jda.api.entities.Member member = event.getMember();
+                    java.util.List<Role> rolesToAdd = new java.util.ArrayList<>();
+                    java.util.List<Role> rolesToRemove = new java.util.ArrayList<>();
 
-                                    // Map INT roles to Full roles
-                                    long[][] rolePairs = {
-                                            {Config.NASA_INT_ROLE_ID, Config.NASA_ROLE_ID},
-                                            {Config.IREC_INT_ROLE_ID, Config.IREC_ROLE_ID},
-                                            {Config.LRS_INT_ROLE_ID, Config.LRS_ROLE_ID}
-                                    };
+                    Role onboardingRole = guild.getRoleById(Config.ONBOARDING_ROLE_ID);
+                    if (onboardingRole != null && member.getRoles().contains(onboardingRole)) {
+                        rolesToRemove.add(onboardingRole);
+                    }
 
-                                    // Upgrade roles if the user holds the INT version
-                                    for (long[] pair : rolePairs) {
-                                        assert member != null;
-                                        if (member.getRoles().stream().anyMatch(r -> r.getIdLong() == pair[0])) {
-                                            assert guild != null;
-                                            Role intRole = guild.getRoleById(pair[0]);
-                                            Role fullRole = guild.getRoleById(pair[1]);
-                                            if (intRole != null && fullRole != null) {
-                                                guild.removeRoleFromMember(member, intRole).queue();
-                                                guild.addRoleToMember(member, fullRole).queue();
-                                            }
-                                        }
-                                    }
-                                },
-                                error -> System.err.println("Failed to remove role: Onboarding"));
+                    // Role mapping: { INT_ROLE_ID, FULL_ROLE_ID }
+                    long[][] rolePairs = {
+                            {Config.NASA_INT_ROLE_ID, Config.NASA_ROLE_ID},
+                            {Config.IREC_INT_ROLE_ID, Config.IREC_ROLE_ID},
+                            {Config.LRS_INT_ROLE_ID, Config.LRS_ROLE_ID}
+                    };
+
+                    for (long[] pair : rolePairs) {
+                        Role intRole = guild.getRoleById(pair[0]);
+                        Role fullRole = guild.getRoleById(pair[1]);
+
+                        if (intRole != null && fullRole != null && member.getRoles().contains(intRole)) {
+                            rolesToRemove.add(intRole);
+                            rolesToAdd.add(fullRole);
+                        }
+                    }
+
+                    // Single REST call for all role changes
+                    if (!rolesToAdd.isEmpty() || !rolesToRemove.isEmpty()) {
+                        guild.modifyMemberRoles(member, rolesToAdd, rolesToRemove).queueAfter(3, TimeUnit.SECONDS,
+                                success -> System.out.println("Successfully updated roles for " + event.getUser().getName()),
+                                error -> System.err.println("Failed to update roles: " + error.getMessage())
+                        );
                     }
                 }
             }
