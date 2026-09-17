@@ -67,6 +67,67 @@ public class OnboardingListener extends ListenerAdapter {
                     .addActionRow(Button.primary("onboard:rule1", "Start Onboarding Process"))
                     .queue(s -> event.getHook().editOriginal("Message successfully sent in " + channel.getAsMention()).queue(),
                             f -> event.getHook().editOriginal("Message failed to be sent in " + channel.getAsMention()).queue());
+        } else if (event.getName().equals("demote-onboarding-roles")) {
+            if (event.getMember() == null || !event.getMember().hasPermission(Permission.ADMINISTRATOR)) {
+                event.reply("You must have Administrator permissions to use this command.")
+                        .setEphemeral(true)
+                        .queue();
+                return;
+            }
+
+            event.deferReply(true).queue();
+
+            net.dv8tion.jda.api.entities.Guild guild = event.getGuild();
+            if (guild == null) {
+                event.getHook().editOriginal("This command can only be used inside a guild.").queue();
+                return;
+            }
+
+            Role onboardingRole = guild.getRoleById(Config.ONBOARDING_ROLE_ID);
+            if (onboardingRole == null) {
+                event.getHook().editOriginal("Onboarding role is not configured correctly.").queue();
+                return;
+            }
+
+            // Role conversion pairs: { FULL_ROLE_ID, INT_ROLE_ID }
+            long[][] rolePairs = {
+                    {Config.NASA_ROLE_ID, Config.NASA_INT_ROLE_ID},
+                    {Config.IREC_ROLE_ID, Config.IREC_INT_ROLE_ID},
+                    {Config.LRS_ROLE_ID, Config.LRS_INT_ROLE_ID}
+            };
+
+            // Load full guild member cache before processing
+            guild.loadMembers().onSuccess(members -> {
+                int membersDowngraded = 0;
+
+                for (net.dv8tion.jda.api.entities.Member member : members) {
+                    // Target only members currently in onboarding
+                    if (member.getRoles().contains(onboardingRole)) {
+                        boolean memberUpdated = false;
+
+                        for (long[] pair : rolePairs) {
+                            Role fullRole = guild.getRoleById(pair[0]);
+                            Role intRole = guild.getRoleById(pair[1]);
+
+                            if (fullRole != null && intRole != null && member.getRoles().contains(fullRole)) {
+                                guild.removeRoleFromMember(member, fullRole).queue();
+                                guild.addRoleToMember(member, intRole).queue();
+                                memberUpdated = true;
+                            }
+                        }
+
+                        if (memberUpdated) {
+                            membersDowngraded++;
+                        }
+                    }
+                }
+
+                event.getHook().editOriginal(
+                        "Role check complete. Downgraded team roles to INT versions for " + membersDowngraded + " member(s) currently in onboarding."
+                ).queue();
+            }).onError(error ->
+                    event.getHook().editOriginal("Failed to load members: " + error.getMessage()).queue()
+            );
         }
     }
 
@@ -214,7 +275,33 @@ public class OnboardingListener extends ListenerAdapter {
                     Role onboardingRole = event.getGuild().getRoleById(Config.ONBOARDING_ROLE_ID);
                     if (onboardingRole != null) {
                         event.getGuild().removeRoleFromMember(event.getMember(), onboardingRole).queueAfter(3, TimeUnit.SECONDS,
-                                success -> System.out.println("Removed onboarding role from " + event.getUser().getName()),
+                                success -> {
+                                    System.out.println("Removed onboarding role from " + event.getUser().getName());
+
+                                    net.dv8tion.jda.api.entities.Guild guild = event.getGuild();
+                                    net.dv8tion.jda.api.entities.Member member = event.getMember();
+
+                                    // Map INT roles to Full roles
+                                    long[][] rolePairs = {
+                                            {Config.NASA_INT_ROLE_ID, Config.NASA_ROLE_ID},
+                                            {Config.IREC_INT_ROLE_ID, Config.IREC_ROLE_ID},
+                                            {Config.LRS_INT_ROLE_ID, Config.LRS_ROLE_ID}
+                                    };
+
+                                    // Upgrade roles if the user holds the INT version
+                                    for (long[] pair : rolePairs) {
+                                        assert member != null;
+                                        if (member.getRoles().stream().anyMatch(r -> r.getIdLong() == pair[0])) {
+                                            assert guild != null;
+                                            Role intRole = guild.getRoleById(pair[0]);
+                                            Role fullRole = guild.getRoleById(pair[1]);
+                                            if (intRole != null && fullRole != null) {
+                                                guild.removeRoleFromMember(member, intRole).queue();
+                                                guild.addRoleToMember(member, fullRole).queue();
+                                            }
+                                        }
+                                    }
+                                },
                                 error -> System.err.println("Failed to remove role: Onboarding"));
                     }
                 }

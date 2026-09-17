@@ -56,7 +56,8 @@ public class Main extends ListenerAdapter {
                             .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
                             .addOptions(new OptionData(OptionType.CHANNEL, "target-channel", "Channel to send onboarding to", false)
                                     .setChannelTypes(ChannelType.TEXT)),
-                    Commands.slash("website", "Link to the BSLI Website")
+                    Commands.slash("website", "Link to the BSLI Website"),
+                    Commands.slash("demote-onboarding-roles", "Downgrade team roles to INT for users currently in onboarding")
             ).queue(
                     success -> System.out.println("Successfully registered slash commands to Guild: " + guild.getName()),
                     error -> System.err.println("Failed to register commands: " + error.getMessage())
