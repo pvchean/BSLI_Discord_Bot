@@ -2,9 +2,12 @@ package space.bsli;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -374,6 +377,50 @@ public class OnboardingListener extends ListenerAdapter {
                             success -> System.out.println("Assigned onboarding role to " + event.getUser().getName()),
                             error -> System.err.println("Failed to assign onboarding role: " + error.getMessage())
                     );
+        }
+    }
+
+    @Override
+    public void onGuildMemberRoleAdd(GuildMemberRoleAddEvent event) {
+        Role onboardingRole = event.getGuild().getRoleById(Config.ONBOARDING_ROLE_ID);
+
+        // If the member still has the onboarding role, leave them with the INT role
+        if (onboardingRole != null && event.getMember().getRoles().contains(onboardingRole)) {
+            return;
+        }
+
+        Guild guild = event.getGuild();
+        Member member = event.getMember();
+
+        java.util.List<Role> rolesToAdd = new java.util.ArrayList<>();
+        java.util.List<Role> rolesToRemove = new java.util.ArrayList<>();
+
+        // Role mapping: { INT_ROLE_ID, FULL_ROLE_ID }
+        long[][] rolePairs = {
+                {Config.NASA_INT_ROLE_ID, Config.NASA_ROLE_ID},
+                {Config.IREC_INT_ROLE_ID, Config.IREC_ROLE_ID},
+                {Config.LRS_INT_ROLE_ID, Config.LRS_ROLE_ID}
+        };
+
+        // Check if any of the newly added roles are INT roles
+        for (Role addedRole : event.getRoles()) {
+            for (long[] pair : rolePairs) {
+                if (addedRole.getIdLong() == pair[0]) {
+                    Role fullRole = guild.getRoleById(pair[1]);
+                    if (fullRole != null) {
+                        rolesToRemove.add(addedRole);
+                        rolesToAdd.add(fullRole);
+                    }
+                }
+            }
+        }
+
+        // Single batched REST call to swap INT roles for privileged roles
+        if (!rolesToAdd.isEmpty()) {
+            guild.modifyMemberRoles(member, rolesToAdd, rolesToRemove).queue(
+                    success -> System.out.println("Auto-upgraded INT role(s) to full access for " + member.getUser().getName()),
+                    error -> System.err.println("Failed to auto-upgrade INT role(s): " + error.getMessage())
+            );
         }
     }
 }
